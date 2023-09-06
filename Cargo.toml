@@ -1,3 +1,12 @@
 [workspace]
 resolver = "2"
 members = ["cl_client", "cl_server"]
+
+[workspace.package]
+authors = ["Max Nordlund"]
+repository = "https://github.com/nordluma/cl-client-server"
+license = "MIT"
+edition = "2021"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
