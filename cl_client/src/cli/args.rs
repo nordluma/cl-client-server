@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
+use serde::Serialize;
 
 #[derive(Debug, Parser)]
 #[command(version)]
@@ -9,16 +10,16 @@ pub struct Cli {
     pub command: Command,
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Subcommand, Serialize)]
 pub enum Command {
     Add(Task),
     Run,
     Kill,
-    Show,
+    Shows,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Serialize)]
 pub struct Task {
     pub cmd: String,
-    pub cwd: PathBuf,
+    pub cwd: Option<PathBuf>,
 }
