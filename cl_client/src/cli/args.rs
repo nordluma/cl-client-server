@@ -15,7 +15,7 @@ pub enum Command {
     Add(Task),
     Run,
     Kill,
-    Shows,
+    Show,
 }
 
 #[derive(Args, Debug, Serialize)]
