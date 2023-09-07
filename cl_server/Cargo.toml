@@ -10,4 +10,7 @@ repository.workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
+byteorder = { workspace = true }
+ciborium = { workspace = true }
+serde = { workspace = true }
 tokio = { workspace = true }
