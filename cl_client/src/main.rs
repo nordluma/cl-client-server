@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use byteorder::{NetworkEndian, WriteBytesExt};
 use ciborium::into_writer;
 use clap::Parser;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
@@ -18,22 +17,25 @@ async fn main() {
 
 async fn send_task(cmd: Command) -> Result<()> {
     // send the task to the server
-    let mut buf = Vec::new();
     let mut sender = TcpStream::connect("127.0.0.1:42069")
         .await
         .context("could not connect to server")?;
 
-    into_writer(&cmd, &mut buf).context("could not serialize message")?;
-    let header = buf.len() as u64;
+    let msg = to_cbor(&cmd).await?;
 
-    WriteBytesExt::write_u64::<NetworkEndian>(&mut buf, header)?;
-
-    println!("{:?}", buf);
+    println!("{:?}", msg);
 
     sender
-        .write_all(&buf)
+        .write_all(&msg)
         .await
         .context("could not send the message")?;
     // receive response
     Ok(())
+}
+
+async fn to_cbor(cmd: &Command) -> anyhow::Result<Vec<u8>> {
+    let mut buf = vec![];
+    into_writer(&cmd, &mut buf).context("could not serialize task")?;
+
+    Ok(buf)
 }
