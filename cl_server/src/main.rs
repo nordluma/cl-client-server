@@ -3,10 +3,7 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use ciborium::from_reader;
 use serde::Deserialize;
-use tokio::{
-    io::{AsyncRead, AsyncReadExt},
-    net::{TcpListener, TcpStream},
-};
+use tokio::net::{TcpListener, TcpStream};
 
 #[derive(Debug, Deserialize)]
 enum Command {
@@ -16,6 +13,7 @@ enum Command {
     Show,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct Task {
     cmd: String,
