@@ -171,6 +171,7 @@ dependencies = [
  "anyhow",
  "byteorder",
  "ciborium",
+ "ciborium-io",
  "serde",
  "tokio",
 ]

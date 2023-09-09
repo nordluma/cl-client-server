@@ -12,5 +12,6 @@ repository.workspace = true
 anyhow = { workspace = true }
 byteorder = { workspace = true }
 ciborium = { workspace = true }
+ciborium-io = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
