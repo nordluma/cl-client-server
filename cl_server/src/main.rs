@@ -1,9 +1,12 @@
-use std::path::PathBuf;
+use std::{io::Cursor, path::PathBuf};
 
 use anyhow::{Context, Result};
 use ciborium::from_reader;
 use serde::Deserialize;
-use tokio::net::{TcpListener, TcpStream};
+use tokio::{
+    io::AsyncReadExt,
+    net::{TcpListener, TcpStream},
+};
 
 #[derive(Debug, Deserialize)]
 enum Command {
@@ -29,15 +32,9 @@ async fn main() -> Result<()> {
         .await
         .context("Could not get the client")?;
 
-    receive_task(socket).await?;
+    let task = receive_task(socket).await?;
 
-    Ok(())
-}
-
-async fn receive_task(stream: TcpStream) -> Result<()> {
-    let cmd = read_bytes(stream)?;
-
-    match cmd {
+    match task {
         Command::Add(task) => {
             println!("Addign task: {:?}", task);
         }
@@ -51,16 +48,23 @@ async fn receive_task(stream: TcpStream) -> Result<()> {
             println!("showing tasks");
         }
     }
-
     Ok(())
 }
 
-fn read_bytes(stream: TcpStream) -> Result<Command> {
+async fn receive_task(stream: TcpStream) -> Result<Command> {
+    let bytes = read_bytes(stream).await?;
+    let cmd = from_reader::<Command, _>(Cursor::new(bytes)).unwrap();
+
+    Ok(cmd)
+}
+
+async fn read_bytes(mut stream: TcpStream) -> Result<Vec<u8>> {
     // This feels wrong...
     // There should be a way to deserialize without turning the stream into
     // a std stream
-    let std_stream = stream.into_std().unwrap();
-    let cmd = from_reader::<Command, _>(std_stream).unwrap();
+    let mut buf = vec![];
+    stream.read_to_end(&mut buf).await?;
+    //let cmd = from_reader::<Command, _>(std_stream).unwrap();
 
-    Ok(cmd)
+    Ok(buf)
 }
