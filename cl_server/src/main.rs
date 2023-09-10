@@ -45,7 +45,7 @@ impl TaskManager {
 
     async fn add_task(&mut self, task: Task) {
         let mut tasks = self.tasks.lock().await;
-        println!("Addign task: {:?}", task);
+        println!("Adding task: {:?}", task);
         tasks.push(task);
     }
 
@@ -58,6 +58,8 @@ impl TaskManager {
             println!("Executing task: {:?}", task);
             sleep(wait).await;
         }
+
+        println!("All tasks have been executed");
     }
 
     async fn show_all_tasks(&self) {
