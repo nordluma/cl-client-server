@@ -27,6 +27,12 @@ struct Task {
 
 #[derive(Debug, Clone)]
 struct TaskManager {
+    // Not sure if a vector is the right type to use, a hashmap could be better
+    // since we could create multiple different task categories and get information
+    // of a single task by giving the name of the task.
+    //
+    // We will also need a sender to send information to the processing function.
+    // This will be implemented later
     tasks: Arc<Mutex<Vec<Task>>>,
 }
 
@@ -89,6 +95,7 @@ async fn process_connection(socket: TcpStream, mut task_manager: TaskManager) ->
             task_manager.execute_tasks().await;
         }
         Command::Kill => {
+            // This still needs to be mocked
             println!("Killing task");
         }
         Command::Show => {
