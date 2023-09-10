@@ -10,6 +10,20 @@ use tokio::{
     time::sleep,
 };
 
+struct Message(Cursor<Vec<u8>>);
+
+impl From<Vec<u8>> for Message {
+    fn from(value: Vec<u8>) -> Self {
+        Self(Cursor::new(value))
+    }
+}
+
+impl Message {
+    fn into_inner(self) -> Cursor<Vec<u8>> {
+        self.0
+    }
+}
+
 #[derive(Debug, Deserialize)]
 enum Command {
     Add(Task),
@@ -109,19 +123,18 @@ async fn process_connection(socket: TcpStream, mut task_manager: TaskManager) ->
 }
 
 async fn receive_task(stream: TcpStream) -> Result<Command> {
-    let bytes = read_bytes(stream).await?;
-    let cursor = Cursor::new(bytes);
-    let cmd = from_reader::<Command, _>(cursor).context("could not deserialize task")?;
+    let msg = read_bytes(stream).await?;
+    let cmd = from_reader::<Command, _>(msg.into_inner()).context("could not deserialize task")?;
 
     Ok(cmd)
 }
 
-async fn read_bytes(mut stream: TcpStream) -> Result<Vec<u8>> {
+async fn read_bytes(mut stream: TcpStream) -> Result<Message> {
     // This could be improved by receiving the size of the payload so that we
     // can initialize an array with the right size instead of initializing a
     // vector
     let mut buf = vec![];
     stream.read_to_end(&mut buf).await?;
 
-    Ok(buf)
+    Ok(Message::from(buf))
 }
