@@ -25,6 +25,7 @@ struct Task {
     cwd: Option<PathBuf>,
 }
 
+#[derive(Debug, Clone)]
 struct TaskManager {
     tasks: Arc<Mutex<Vec<Task>>>,
 }
@@ -62,13 +63,22 @@ impl TaskManager {
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:42069").await?;
-    let mut task_manager = TaskManager::new();
+    let task_manager = TaskManager::new();
 
-    let (socket, _) = listener
-        .accept()
-        .await
-        .context("Could not get the client")?;
+    loop {
+        let (socket, _) = listener
+            .accept()
+            .await
+            .context("Could not get the client")?;
+        let task_manager = task_manager.clone();
 
+        tokio::spawn(async move {
+            process_connection(socket, task_manager).await.unwrap();
+        });
+    }
+}
+
+async fn process_connection(socket: TcpStream, mut task_manager: TaskManager) -> Result<()> {
     let task = receive_task(socket).await?;
 
     match task {
@@ -81,7 +91,9 @@ async fn main() -> Result<()> {
         Command::Kill => {
             println!("Killing task");
         }
-        Command::Show => task_manager.show_all_tasks(),
+        Command::Show => {
+            task_manager.show_all_tasks().await;
+        }
     }
 
     Ok(())
