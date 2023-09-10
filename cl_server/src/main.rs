@@ -53,18 +53,18 @@ async fn main() -> Result<()> {
 
 async fn receive_task(stream: TcpStream) -> Result<Command> {
     let bytes = read_bytes(stream).await?;
-    let cmd = from_reader::<Command, _>(Cursor::new(bytes)).unwrap();
+    let cursor = Cursor::new(bytes);
+    let cmd = from_reader::<Command, _>(cursor).context("could not deserialize task")?;
 
     Ok(cmd)
 }
 
 async fn read_bytes(mut stream: TcpStream) -> Result<Vec<u8>> {
-    // This feels wrong...
-    // There should be a way to deserialize without turning the stream into
-    // a std stream
+    // This could be improved by receiving the size of the payload so that we
+    // can initialize an array with the right size instead of initializing a
+    // vector
     let mut buf = vec![];
     stream.read_to_end(&mut buf).await?;
-    //let cmd = from_reader::<Command, _>(std_stream).unwrap();
 
     Ok(buf)
 }
