@@ -16,20 +16,17 @@ async fn main() {
 }
 
 async fn send_task(cmd: Command) -> Result<()> {
-    // send the task to the server
     let mut sender = TcpStream::connect("127.0.0.1:42069")
         .await
         .context("could not connect to server")?;
 
     let msg = to_cbor(&cmd).await?;
 
-    println!("{:?}", msg);
-
     sender
         .write_all(&msg)
         .await
         .context("could not send the message")?;
-    // receive response
+
     Ok(())
 }
 
