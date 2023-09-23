@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["cl_client", "cl_server"]
+members = ["cl_client", "cl_server", "cl_lib"]
 
 [workspace.package]
 authors = ["Max Nordlund"]
@@ -12,6 +12,6 @@ edition = "2021"
 anyhow = "1"
 byteorder = "1"
 ciborium = "0.2.1"
-ciborium-io = "0.2.1"
+chrono = "0.4.31"
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
