@@ -18,8 +18,8 @@ impl From<Vec<u8>> for Message {
     }
 }
 
-impl Message {
-    fn into_inner(self) -> Cursor<Vec<u8>> {
+impl Into<Cursor<Vec<u8>>> for Message {
+    fn into(self) -> Cursor<Vec<u8>> {
         self.0
     }
 }
@@ -124,7 +124,8 @@ async fn process_connection(socket: TcpStream, mut task_manager: TaskManager) ->
 
 async fn receive_task(stream: TcpStream) -> Result<Command> {
     let msg = read_bytes(stream).await?;
-    let cmd = from_reader::<Command, _>(msg.into_inner()).context("could not deserialize task")?;
+    let cmd = from_reader::<Command, Cursor<Vec<u8>>>(msg.into())
+        .context("could not deserialize task")?;
 
     Ok(cmd)
 }
