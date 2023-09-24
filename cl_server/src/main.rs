@@ -64,8 +64,8 @@ impl TaskManager {
     }
 
     async fn execute_tasks(&mut self) {
-        let wait = Duration::from_secs(2);
         let mut tasks = self.tasks.lock().await;
+        let wait = Duration::from_secs(2);
         println!("Running all tasks");
 
         while let Some(task) = tasks.pop() {
