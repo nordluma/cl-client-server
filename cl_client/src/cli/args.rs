@@ -26,12 +26,12 @@ pub struct Task {
     pub cwd: Option<PathBuf>,
 }
 
-impl Into<Payload> for Task {
-    fn into(self) -> Payload {
-        if self.cwd.is_some() {
-            Payload::new(self.cmd, self.cwd.unwrap())
+impl From<Task> for Payload {
+    fn from(val: Task) -> Self {
+        if val.cwd.is_some() {
+            Payload::new(val.cmd, val.cwd.unwrap())
         } else {
-            Payload::new(self.cmd, PathBuf::from("./"))
+            Payload::new(val.cmd, PathBuf::from("./"))
         }
     }
 }
