@@ -18,9 +18,9 @@ impl From<Vec<u8>> for Message {
     }
 }
 
-impl Into<Cursor<Vec<u8>>> for Message {
-    fn into(self) -> Cursor<Vec<u8>> {
-        self.0
+impl From<Message> for Cursor<Vec<u8>> {
+    fn from(val: Message) -> Self {
+        val.0
     }
 }
 
