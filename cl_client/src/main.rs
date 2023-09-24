@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use ciborium::into_writer;
+use cl_lib::message::Message;
 use clap::Parser;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 
@@ -20,7 +21,7 @@ async fn send_task(cmd: Command) -> Result<()> {
         .await
         .context("could not connect to server")?;
 
-    let msg = to_cbor(&cmd).await?;
+    let msg = to_cbor(&cmd.into()).await?;
 
     sender
         .write_all(&msg)
@@ -30,7 +31,7 @@ async fn send_task(cmd: Command) -> Result<()> {
     Ok(())
 }
 
-async fn to_cbor(cmd: &Command) -> anyhow::Result<Vec<u8>> {
+async fn to_cbor(cmd: &Message) -> anyhow::Result<Vec<u8>> {
     let mut buf = vec![];
     into_writer(&cmd, &mut buf).context("could not serialize task")?;
 

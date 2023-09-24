@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 use serde::Serialize;
 
-use cl_lib::message::Payload;
+use cl_lib::message::{Message, Payload};
 
 #[derive(Debug, Parser)]
 #[command(version)]
@@ -18,6 +18,17 @@ pub enum Command {
     Run,
     Kill,
     Show,
+}
+
+impl From<Command> for Message {
+    fn from(value: Command) -> Self {
+        match value {
+            Command::Add(task) => Message::Add(task.into()),
+            Command::Run => Message::Run,
+            Command::Kill => Message::Kill,
+            Command::Show => Message::Show,
+        }
+    }
 }
 
 #[derive(Args, Debug, Serialize)]
