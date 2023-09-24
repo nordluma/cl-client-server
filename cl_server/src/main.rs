@@ -10,16 +10,17 @@ use tokio::{
     time::sleep,
 };
 
-struct Message(Cursor<Vec<u8>>);
 
-impl From<Vec<u8>> for Message {
+struct ByteBuffer(Cursor<Vec<u8>>);
+
+impl From<Vec<u8>> for ByteBuffer {
     fn from(value: Vec<u8>) -> Self {
         Self(Cursor::new(value))
     }
 }
 
-impl From<Message> for Cursor<Vec<u8>> {
-    fn from(val: Message) -> Self {
+impl From<ByteBuffer> for Cursor<Vec<u8>> {
+    fn from(val: ByteBuffer) -> Self {
         val.0
     }
 }
@@ -130,12 +131,12 @@ async fn receive_task(stream: TcpStream) -> Result<Command> {
     Ok(cmd)
 }
 
-async fn read_bytes(mut stream: TcpStream) -> Result<Message> {
+async fn read_bytes(mut stream: TcpStream) -> Result<ByteBuffer> {
     // This could be improved by receiving the size of the payload so that we
     // can initialize an array with the right size instead of initializing a
     // vector
     let mut buf = vec![];
     stream.read_to_end(&mut buf).await?;
 
-    Ok(Message::from(buf))
+    Ok(ByteBuffer::from(buf))
 }
