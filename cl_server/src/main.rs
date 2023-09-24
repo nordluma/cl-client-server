@@ -1,4 +1,4 @@
-use std::{io::Cursor, path::PathBuf, sync::Arc, time::Duration};
+use std::{collections::VecDeque, io::Cursor, path::PathBuf, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
 use ciborium::from_reader;
@@ -47,20 +47,20 @@ struct TaskManager {
     //
     // We will also need a sender to send information to the processing function.
     // This will be implemented later
-    tasks: Arc<Mutex<Vec<Task>>>,
+    tasks: Arc<Mutex<VecDeque<Task>>>,
 }
 
 impl TaskManager {
     fn new() -> TaskManager {
         TaskManager {
-            tasks: Arc::new(Mutex::new(Vec::new())),
+            tasks: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
 
     async fn add_task(&mut self, task: Task) {
         let mut tasks = self.tasks.lock().await;
         println!("Adding task: {:?}", task);
-        tasks.push(task);
+        tasks.push_back(task);
     }
 
     async fn execute_tasks(&mut self) {
@@ -68,7 +68,7 @@ impl TaskManager {
         let wait = Duration::from_secs(2);
         println!("Running all tasks");
 
-        while let Some(task) = tasks.pop() {
+        while let Some(task) = tasks.pop_front() {
             println!("Executing task: {:?}", task);
             sleep(wait).await;
         }
