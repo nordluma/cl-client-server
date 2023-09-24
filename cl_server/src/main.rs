@@ -10,6 +10,7 @@ use tokio::{
     time::sleep,
 };
 
+use cl_lib::message::{Message, Payload};
 
 struct ByteBuffer(Cursor<Vec<u8>>);
 
@@ -23,14 +24,6 @@ impl From<ByteBuffer> for Cursor<Vec<u8>> {
     fn from(val: ByteBuffer) -> Self {
         val.0
     }
-}
-
-#[derive(Debug, Deserialize)]
-enum Command {
-    Add(Task),
-    Run,
-    Kill,
-    Show,
 }
 
 #[allow(dead_code)]
@@ -48,7 +41,7 @@ struct TaskManager {
     //
     // We will also need a sender to send information to the processing function.
     // This will be implemented later
-    tasks: Arc<Mutex<VecDeque<Task>>>,
+    tasks: Arc<Mutex<VecDeque<Payload>>>,
 }
 
 impl TaskManager {
@@ -58,7 +51,7 @@ impl TaskManager {
         }
     }
 
-    async fn add_task(&mut self, task: Task) {
+    async fn add_task(&mut self, task: Payload) {
         let mut tasks = self.tasks.lock().await;
         println!("Adding task: {:?}", task);
         tasks.push_back(task);
@@ -105,17 +98,17 @@ async fn process_connection(socket: TcpStream, mut task_manager: TaskManager) ->
     let task = receive_task(socket).await?;
 
     match task {
-        Command::Add(task) => {
+        Message::Add(task) => {
             task_manager.add_task(task).await;
         }
-        Command::Run => {
+        Message::Run => {
             task_manager.execute_tasks().await;
         }
-        Command::Kill => {
+        Message::Kill => {
             // This still needs to be mocked
             println!("Killing task");
         }
-        Command::Show => {
+        Message::Show => {
             task_manager.show_all_tasks().await;
         }
     }
@@ -123,9 +116,9 @@ async fn process_connection(socket: TcpStream, mut task_manager: TaskManager) ->
     Ok(())
 }
 
-async fn receive_task(stream: TcpStream) -> Result<Command> {
+async fn receive_task(stream: TcpStream) -> Result<Message> {
     let msg = read_bytes(stream).await?;
-    let cmd = from_reader::<Command, Cursor<Vec<u8>>>(msg.into())
+    let cmd = from_reader::<Message, Cursor<Vec<u8>>>(msg.into())
         .context("could not deserialize task")?;
 
     Ok(cmd)

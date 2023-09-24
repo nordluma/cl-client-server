@@ -3,6 +3,14 @@ use std::path::PathBuf;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Deserialize, Serialize)]
+pub enum Message {
+    Add(Payload),
+    Run,
+    Kill,
+    Show,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Payload {
     pub cmd: String,
