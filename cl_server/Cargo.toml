@@ -9,6 +9,8 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+cl_lib = { path = "../cl_lib" }
+
 anyhow = { workspace = true }
 byteorder = { workspace = true }
 ciborium = { workspace = true }

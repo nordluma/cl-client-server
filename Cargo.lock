@@ -216,6 +216,7 @@ dependencies = [
  "anyhow",
  "byteorder",
  "ciborium",
+ "cl_lib",
  "serde",
  "tokio",
 ]
