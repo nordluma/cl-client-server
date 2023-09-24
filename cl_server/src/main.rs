@@ -129,7 +129,10 @@ async fn read_bytes(mut stream: TcpStream) -> Result<ByteBuffer> {
     // can initialize an array with the right size instead of initializing a
     // vector
     let mut buf = vec![];
-    stream.read_to_end(&mut buf).await?;
+    stream
+        .read_to_end(&mut buf)
+        .await
+        .context("failed to read message into buffer")?;
 
     Ok(ByteBuffer::from(buf))
 }
