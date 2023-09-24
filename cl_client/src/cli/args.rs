@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 use serde::Serialize;
 
+use cl_lib::message::Payload;
+
 #[derive(Debug, Parser)]
 #[command(version)]
 pub struct Cli {
@@ -22,4 +24,14 @@ pub enum Command {
 pub struct Task {
     pub cmd: String,
     pub cwd: Option<PathBuf>,
+}
+
+impl Into<Payload> for Task {
+    fn into(self) -> Payload {
+        if self.cwd.is_some() {
+            Payload::new(self.cmd, self.cwd.unwrap())
+        } else {
+            Payload::new(self.cmd, PathBuf::from("./"))
+        }
+    }
 }
