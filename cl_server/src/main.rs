@@ -1,15 +1,15 @@
 use std::{collections::VecDeque, io::Cursor, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
-use ciborium::from_reader;
+use ciborium::{from_reader, into_writer};
 use tokio::{
-    io::AsyncReadExt,
-    net::{TcpListener, TcpStream},
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{tcp::ReadHalf, TcpListener},
     sync::Mutex,
     time::sleep,
 };
 
-use cl_lib::message::{Message, Payload};
+use cl_lib::message::{Message, Payload, Response};
 
 struct ByteBuffer(Cursor<Vec<u8>>);
 
@@ -64,7 +64,12 @@ impl TaskManager {
 
     async fn show_all_tasks(&self) {
         let tasks = self.tasks.lock().await;
-        println!("{:?}", tasks);
+
+        if tasks.is_empty() {
+            println!("No tasks added");
+        } else {
+            println!("{:?}", tasks);
+        }
     }
 }
 
@@ -74,41 +79,63 @@ async fn main() -> Result<()> {
     let task_manager = TaskManager::new();
 
     loop {
-        let (socket, _) = listener
+        let (mut socket, _) = listener
             .accept()
             .await
             .context("Could not get the client")?;
         let task_manager = task_manager.clone();
 
         tokio::spawn(async move {
-            process_connection(socket, task_manager).await.unwrap();
+            let (reader, mut writer) = socket.split();
+            let res = process_connection(reader, task_manager).await.unwrap();
+            if let Some(res) = res {
+                let mut buf = vec![];
+                into_writer(&res, &mut buf)
+                    .context("Failed to serialize response")
+                    .unwrap();
+                writer
+                    .write_all(buf.as_slice())
+                    .await
+                    .context("Failed to write response")
+                    .unwrap();
+            };
         });
     }
 }
 
-async fn process_connection(socket: TcpStream, mut task_manager: TaskManager) -> Result<()> {
+async fn process_connection(
+    socket: ReadHalf<'_>,
+    task_manager: TaskManager,
+) -> Result<Option<Response>> {
     let task = receive_task(socket).await?;
+    let response = handle_task(task, task_manager).await;
 
+    Ok(response)
+}
+
+async fn handle_task(task: Message, mut task_manager: TaskManager) -> Option<Response> {
     match task {
         Message::Add(task) => {
             task_manager.add_task(task).await;
+            Some(Response::Success("task added successfully.".to_string()))
         }
         Message::Run => {
             task_manager.execute_tasks().await;
+            Some(Response::Success("tasks completed".to_string()))
         }
         Message::Kill => {
             // This still needs to be mocked
             println!("Killing task");
+            None
         }
         Message::Show => {
             task_manager.show_all_tasks().await;
+            None
         }
     }
-
-    Ok(())
 }
 
-async fn receive_task(stream: TcpStream) -> Result<Message> {
+async fn receive_task(stream: ReadHalf<'_>) -> Result<Message> {
     let msg = read_bytes(stream).await?;
     let cmd = from_reader::<Message, Cursor<Vec<u8>>>(msg.into())
         .context("could not deserialize task")?;
@@ -116,7 +143,7 @@ async fn receive_task(stream: TcpStream) -> Result<Message> {
     Ok(cmd)
 }
 
-async fn read_bytes(mut stream: TcpStream) -> Result<ByteBuffer> {
+async fn read_bytes(mut stream: ReadHalf<'_>) -> Result<ByteBuffer> {
     // This could be improved by receiving the size of the payload so that we
     // can initialize an array with the right size instead of initializing a
     // vector
