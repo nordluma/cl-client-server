@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
 use ciborium::into_writer;
-use cl_lib::message::Message;
 use clap::Parser;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 
 use cl_client::cli::args::{Cli, Command};
+use cl_lib::message::Message;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
