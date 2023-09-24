@@ -1,8 +1,7 @@
-use std::{collections::VecDeque, io::Cursor, path::PathBuf, sync::Arc, time::Duration};
+use std::{collections::VecDeque, io::Cursor, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
 use ciborium::from_reader;
-use serde::Deserialize;
 use tokio::{
     io::AsyncReadExt,
     net::{TcpListener, TcpStream},
@@ -24,13 +23,6 @@ impl From<ByteBuffer> for Cursor<Vec<u8>> {
     fn from(val: ByteBuffer) -> Self {
         val.0
     }
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Deserialize)]
-struct Task {
-    cmd: String,
-    cwd: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
