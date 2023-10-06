@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::VecDeque, path::PathBuf};
 
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
@@ -33,8 +33,13 @@ impl Payload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Response {
-    task: Payload,
-    success: bool,
-    error_message: Option<String>,
+pub enum Response {
+    Success(String),
+    Failure(String),
+    Status(StatusMessage),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StatusMessage {
+    pub tasks: VecDeque<Payload>,
 }
