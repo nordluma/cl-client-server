@@ -1,39 +1,19 @@
-use std::{collections::VecDeque, io::Cursor, sync::Arc, time::Duration};
+use std::{collections::VecDeque, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
-use ciborium::{from_reader, into_writer};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::{tcp::ReadHalf, TcpListener},
-    sync::Mutex,
-    time::sleep,
+use tokio::{sync::Mutex, time::sleep};
+
+use cl_lib::{
+    message::{Message, Payload, Response},
+    network::{init_listener, receive_message, send_response, GenericStream},
 };
-
-use cl_lib::message::{Message, Payload, Response};
-
-struct ByteBuffer(Cursor<Vec<u8>>);
-
-impl From<Vec<u8>> for ByteBuffer {
-    fn from(value: Vec<u8>) -> Self {
-        Self(Cursor::new(value))
-    }
-}
-
-impl From<ByteBuffer> for Cursor<Vec<u8>> {
-    fn from(val: ByteBuffer) -> Self {
-        val.0
-    }
-}
+use cl_server::task::Task;
 
 #[derive(Debug, Clone)]
 struct TaskManager {
-    // Not sure if a vector is the right type to use, a hashmap could be better
-    // since we could create multiple different task categories and get information
-    // of a single task by giving the name of the task.
-    //
     // We will also need a sender to send information to the processing function.
     // This will be implemented later
-    tasks: Arc<Mutex<VecDeque<Payload>>>,
+    tasks: Arc<Mutex<VecDeque<Task>>>,
 }
 
 impl TaskManager {
@@ -44,6 +24,7 @@ impl TaskManager {
     }
 
     async fn add_task(&mut self, task: Payload) {
+        let task = task.into();
         let mut tasks = self.tasks.lock().await;
         println!("Adding task: {:?}", task);
         tasks.push_back(task);
@@ -64,57 +45,47 @@ impl TaskManager {
 
     async fn show_all_tasks(&self) {
         let tasks = self.tasks.lock().await;
-
         if tasks.is_empty() {
             println!("No tasks added");
-        } else {
-            println!("{:?}", tasks);
+            return;
+        }
+
+        for task in tasks.iter() {
+            println!("{:?}", task);
         }
     }
 }
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:42069").await?;
+    let listener = init_listener(("127.0.0.1", "42069")).await.unwrap();
     let task_manager = TaskManager::new();
 
     loop {
-        let (mut socket, _) = listener
+        let (socket, _) = listener
             .accept()
             .await
             .context("Could not get the client")?;
-        let task_manager = task_manager.clone();
+        let mut task_manager = task_manager.clone();
+        let mut stream = Box::new(socket);
 
         tokio::spawn(async move {
-            let (reader, mut writer) = socket.split();
-            let res = process_connection(reader, task_manager).await.unwrap();
+            let res = process_connection(&mut stream, &mut task_manager)
+                .await
+                .unwrap();
             if let Some(res) = res {
-                let mut buf = vec![];
-                into_writer(&res, &mut buf)
-                    .context("Failed to serialize response")
-                    .unwrap();
-                writer
-                    .write_all(buf.as_slice())
-                    .await
-                    .context("Failed to write response")
-                    .unwrap();
+                send_response(res, &mut stream).await.unwrap();
             };
         });
     }
 }
 
 async fn process_connection(
-    socket: ReadHalf<'_>,
-    task_manager: TaskManager,
+    stream: &mut GenericStream,
+    task_manager: &mut TaskManager,
 ) -> Result<Option<Response>> {
-    let task = receive_task(socket).await?;
-    let response = handle_task(task, task_manager).await;
-
-    Ok(response)
-}
-
-async fn handle_task(task: Message, mut task_manager: TaskManager) -> Option<Response> {
-    match task {
+    let task = receive_message(stream).await.unwrap();
+    let res = match task {
         Message::Add(task) => {
             task_manager.add_task(task).await;
             Some(Response::Success("task added successfully.".to_string()))
@@ -132,26 +103,7 @@ async fn handle_task(task: Message, mut task_manager: TaskManager) -> Option<Res
             task_manager.show_all_tasks().await;
             None
         }
-    }
-}
+    };
 
-async fn receive_task(stream: ReadHalf<'_>) -> Result<Message> {
-    let msg = read_bytes(stream).await?;
-    let cmd = from_reader::<Message, Cursor<Vec<u8>>>(msg.into())
-        .context("could not deserialize task")?;
-
-    Ok(cmd)
-}
-
-async fn read_bytes(mut stream: ReadHalf<'_>) -> Result<ByteBuffer> {
-    // This could be improved by receiving the size of the payload so that we
-    // can initialize an array with the right size instead of initializing a
-    // vector
-    let mut buf = vec![];
-    stream
-        .read_to_end(&mut buf)
-        .await
-        .context("failed to read message into buffer")?;
-
-    Ok(ByteBuffer::from(buf))
+    Ok(res)
 }
