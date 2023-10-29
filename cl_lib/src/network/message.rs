@@ -1,4 +1,6 @@
-use ciborium::into_writer;
+use std::io::Cursor;
+
+use ciborium::{from_reader, into_writer};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::message::Message;
@@ -19,6 +21,19 @@ where
     into_writer::<Message, _>(&message, &mut buf)?;
 
     write_bytes(&buf, stream).await
+}
+
+pub async fn receive_message(
+    stream: &mut GenericStream,
+) -> Result<Message, Box<dyn std::error::Error>> {
+    let bytes = read_bytes(stream).await?;
+    if bytes.is_empty() {
+        return Err("Received empty message".into());
+    }
+
+    let message = from_reader::<Message, Cursor<Vec<u8>>>(Cursor::new(bytes))?;
+
+    Ok(message)
 }
 
 pub async fn write_bytes(
