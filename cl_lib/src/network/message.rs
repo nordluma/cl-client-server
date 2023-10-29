@@ -3,7 +3,7 @@ use std::io::Cursor;
 use ciborium::{from_reader, into_writer};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use crate::message::Message;
+use crate::message::{Message, Response};
 
 use super::GenericStream;
 
@@ -23,6 +23,20 @@ where
     write_bytes(&buf, stream).await
 }
 
+pub async fn send_response<T>(
+    response: T,
+    stream: &mut GenericStream,
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    T: Into<Response>,
+{
+    let mut buf = vec![];
+    let response: Response = response.into();
+    into_writer::<Response, _>(&response, &mut buf)?;
+
+    write_bytes(&buf, stream).await
+}
+
 pub async fn receive_message(
     stream: &mut GenericStream,
 ) -> Result<Message, Box<dyn std::error::Error>> {
@@ -34,6 +48,19 @@ pub async fn receive_message(
     let message = from_reader::<Message, Cursor<Vec<u8>>>(Cursor::new(bytes))?;
 
     Ok(message)
+}
+
+pub async fn receive_response(
+    stream: &mut GenericStream,
+) -> Result<Response, Box<dyn std::error::Error>> {
+    let bytes = read_bytes(stream).await?;
+    if bytes.is_empty() {
+        return Err("Received empty response".into());
+    }
+
+    let response = from_reader::<Response, _>(Cursor::new(bytes))?;
+
+    Ok(response)
 }
 
 pub async fn write_bytes(
