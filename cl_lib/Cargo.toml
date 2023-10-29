@@ -10,5 +10,6 @@ edition.workspace = true
 
 [dependencies]
 chrono = { workspace = true }
+ciborium = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
