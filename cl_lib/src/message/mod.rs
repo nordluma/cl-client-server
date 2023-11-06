@@ -37,6 +37,7 @@ pub enum Response {
     Success(String),
     Failure(String),
     Status(StatusMessage),
+    EmptyResponse,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
