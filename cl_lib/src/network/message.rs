@@ -52,15 +52,15 @@ pub async fn receive_message(stream: &mut GenericStream) -> Result<Message, ClEr
     Ok(message)
 }
 
-pub async fn receive_response(
-    stream: &mut GenericStream,
-) -> Result<Response, Box<dyn std::error::Error>> {
+pub async fn receive_response(stream: &mut GenericStream) -> Result<Response, ClError> {
     let bytes = read_bytes(stream).await?;
     if bytes.is_empty() {
-        return Err("Received empty response".into());
+        return Err(ClError::ConnectionError("Received empty response".into()));
     }
 
-    let response = from_reader::<Response, _>(Cursor::new(bytes))?;
+    let response = from_reader::<Response, _>(Cursor::new(bytes))
+        .context("Failed to deserialize response")
+        .map_err(ClError::DeserializationError)?;
 
     Ok(response)
 }
