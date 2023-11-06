@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
-use tokio::{sync::Mutex, task::JoinHandle, time::sleep};
+use tokio::{sync::Mutex, time::sleep};
 
 use cl_lib::{
     message::{Message, Payload, Response},
@@ -69,14 +69,15 @@ async fn main() -> Result<()> {
         let mut task_manager = task_manager.clone();
         let mut stream = Box::new(socket);
 
-        let _: JoinHandle<Result<()>> = tokio::spawn(async move {
+        let _: Result<()> = tokio::spawn(async move {
             match process_connection(&mut stream, &mut task_manager).await? {
                 Some(res) => send_response(res, &mut stream).await?,
                 None => send_response(Response::EmptyResponse, &mut stream).await?,
             }
 
             Ok(())
-        });
+        })
+        .await?;
     }
 }
 
