@@ -1,21 +1,32 @@
 use clap::Parser;
 
-use cl_client::cli::args::{Cli, Command};
-use cl_lib::network::{init_client_stream, receive_response, send_message};
+use cl_client::{
+    cli::args::{Cli, Command},
+    config::{Configurations, NetworkSettings},
+};
+use cl_lib::{
+    message::Response,
+    network::{init_client_stream, receive_response, send_message, GenericStream},
+};
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
-    // 1. Read configurations
-
-    // 2. Parse arguments
+async fn main() -> anyhow::Result<()> {
+    // 1. Parse arguments
     let opts = Cli::parse();
 
-    // 3. Start TCP server
+    // 2. Read configurations
+    let config = Configurations::build();
 
-    // 4. Send task
     if let Err(e) = send_task(opts.command).await {
+    // 3. Create a client
+
+    // 4. Start TCP server
+
+    // 5. Send task
         eprintln!("{}", e);
     };
+
+    Ok(())
 }
 
 async fn send_task(cmd: Command) -> anyhow::Result<()> {
