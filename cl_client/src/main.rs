@@ -19,11 +19,11 @@ async fn main() {
 }
 
 async fn send_task(cmd: Command) -> anyhow::Result<()> {
-    let mut sender = init_client_stream("127.0.0.1", "42069").await.unwrap();
+    let mut sender = init_client_stream("127.0.0.1", "42069").await?;
 
-    send_message(cmd, &mut sender).await.unwrap();
+    send_message(cmd, &mut sender).await?;
 
-    let res = receive_response(&mut sender).await.unwrap();
+    let res = receive_response(&mut sender).await?;
 
     println!("{:?}", res);
 
