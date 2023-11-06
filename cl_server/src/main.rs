@@ -70,10 +70,10 @@ async fn main() -> Result<()> {
         let mut stream = Box::new(socket);
 
         let _: JoinHandle<Result<()>> = tokio::spawn(async move {
-            let res = process_connection(&mut stream, &mut task_manager).await?;
-            if let Some(res) = res {
-                send_response(res, &mut stream).await?;
-            };
+            match process_connection(&mut stream, &mut task_manager).await? {
+                Some(res) => send_response(res, &mut stream).await?,
+                None => send_response(Response::EmptyResponse, &mut stream).await?,
+            }
 
             Ok(())
         });
