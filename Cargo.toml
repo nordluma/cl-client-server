@@ -14,4 +14,5 @@ byteorder = "1"
 ciborium = "0.2.1"
 chrono = { version = "0.4.31", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
+thiserror = "1.0.50"
 tokio = { version = "1", features = ["full"] }
