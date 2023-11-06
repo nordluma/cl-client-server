@@ -17,26 +17,41 @@ async fn main() -> anyhow::Result<()> {
     // 2. Read configurations
     let config = Configurations::build();
 
-    if let Err(e) = send_task(opts.command).await {
     // 3. Create a client
+    let mut client = Client::new(&config.network).await?;
 
     // 4. Start TCP server
 
     // 5. Send task
+    if let Err(e) = client.send_task(opts.command).await {
         eprintln!("{}", e);
     };
 
     Ok(())
 }
 
-async fn send_task(cmd: Command) -> anyhow::Result<()> {
-    let mut sender = init_client_stream("127.0.0.1", "42069").await?;
+struct Client {
+    stream: GenericStream,
+}
 
-    send_message(cmd, &mut sender).await?;
+impl Client {
+    async fn new(config: &NetworkSettings) -> anyhow::Result<Self> {
+        let sender = init_client_stream(&config.addr, &config.port).await?;
 
-    let res = receive_response(&mut sender).await?;
+        Ok(Self { stream: sender })
+    }
 
-    println!("{:?}", res);
+    async fn send_task(&mut self, cmd: Command) -> anyhow::Result<()> {
+        send_message(cmd, &mut self.stream).await?;
 
-    Ok(())
+        match receive_response(&mut self.stream).await? {
+            Response::Success(res) | Response::Failure(res) => {
+                println!("{}", res)
+            }
+            Response::Status(_) => unimplemented!(),
+            Response::EmptyResponse => {}
+        }
+
+        Ok(())
+    }
 }
