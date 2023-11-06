@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
-use tokio::{sync::Mutex, time::sleep};
+use tokio::{sync::Mutex, task::JoinHandle, time::sleep};
 
 use cl_lib::{
     message::{Message, Payload, Response},
@@ -58,7 +58,7 @@ impl TaskManager {
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> Result<()> {
-    let listener = init_listener(("127.0.0.1", "42069")).await.unwrap();
+    let listener = init_listener(("127.0.0.1", "42069")).await?;
     let task_manager = TaskManager::new();
 
     loop {
@@ -69,13 +69,13 @@ async fn main() -> Result<()> {
         let mut task_manager = task_manager.clone();
         let mut stream = Box::new(socket);
 
-        tokio::spawn(async move {
-            let res = process_connection(&mut stream, &mut task_manager)
-                .await
-                .unwrap();
+        let _: JoinHandle<Result<()>> = tokio::spawn(async move {
+            let res = process_connection(&mut stream, &mut task_manager).await?;
             if let Some(res) = res {
-                send_response(res, &mut stream).await.unwrap();
+                send_response(res, &mut stream).await?;
             };
+
+            Ok(())
         });
     }
 }
@@ -84,7 +84,8 @@ async fn process_connection(
     stream: &mut GenericStream,
     task_manager: &mut TaskManager,
 ) -> Result<Option<Response>> {
-    let task = receive_message(stream).await.unwrap();
+    let task = receive_message(stream).await?;
+
     let res = match task {
         Message::Add(task) => {
             task_manager.add_task(task).await;
