@@ -54,6 +54,11 @@ impl TaskManager {
             println!("{:?}", task);
         }
     }
+
+    async fn get_task(&mut self) -> Option<Task> {
+        let tasks = self.tasks.lock();
+        tasks.await.pop_front()
+    }
 }
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
